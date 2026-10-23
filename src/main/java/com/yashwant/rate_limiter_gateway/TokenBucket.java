@@ -1,6 +1,6 @@
 package com.yashwant.rate_limiter_gateway;
 
-public class TokenBucket {
+    public class TokenBucket implements RateLimiterStrategy{
     private final int maxTokens;
     private final double refillRatePerSecond;
     private double currentTokens;
