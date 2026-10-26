@@ -17,6 +17,14 @@ real-world backend concepts: concurrency control, pluggable algorithm design, an
 - Returns proper HTTP 429 (Too Many Requests) on rate limit violations.
 - Unit tested, including concurrency-sensitive refill/window-slide behavior.
 
+## Verified Distributed Behavior
+
+Manually tested by running two separate instances of this service on different ports
+(8081, 8082), both connected to the same Redis instance. Confirmed that a rate limit
+is correctly enforced as a single shared count across both instances — a request
+hitting the limit on one instance is rejected even when the next request arrives at
+a completely different, independent instance. This validates that state is correctly
+centralized in Redis rather than held per-instance in memory.
 ## Design Decisions
 
 - Used an interface (`RateLimiterStrategy`) so algorithms are interchangeable without
