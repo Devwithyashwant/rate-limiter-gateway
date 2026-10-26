@@ -1,11 +1,16 @@
 package com.yashwant.rate_limiter_gateway;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 
 @Service
 public class RateLimiterService {
+
+    @Autowired
+    private StringRedisTemplate redisTemplate;
 
     private final Map<String, RateLimiterStrategy> userLimiters = new ConcurrentHashMap<>();
 
@@ -15,16 +20,22 @@ public class RateLimiterService {
     private static final int MAX_REQUESTS_SLIDING = 5;
     private static final long WINDOW_SIZE_MILLIS = 10_000;
 
-    private static final String ALGORITHM = "SLIDING_WINDOW";
+    private static final int MAX_REQUESTS_REDIS = 5;
+    private static final long WINDOW_SECONDS_REDIS = 10;
+
+    private static final String ALGORITHM = "REDIS";
 
     public boolean isAllowed(String userId) {
-        RateLimiterStrategy limiter = userLimiters.computeIfAbsent(userId, id -> createLimiter());
+        RateLimiterStrategy limiter = userLimiters.computeIfAbsent(userId, id -> createLimiter(userId));
         return limiter.allowRequest();
     }
 
-    private RateLimiterStrategy createLimiter() {
+    private RateLimiterStrategy createLimiter(String userId) {
         if (ALGORITHM.equals("SLIDING_WINDOW")) {
             return new SlidingWindowCounter(MAX_REQUESTS_SLIDING, WINDOW_SIZE_MILLIS);
+        }
+        if (ALGORITHM.equals("REDIS")) {
+            return new RedisRateLimiter(redisTemplate, userId, MAX_REQUESTS_REDIS, WINDOW_SECONDS_REDIS);
         }
         return new TokenBucket(MAX_TOKENS, REFILL_RATE);
     }
