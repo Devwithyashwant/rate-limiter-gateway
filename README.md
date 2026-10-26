@@ -53,7 +53,21 @@ are defined explicitly in `KafkaProducerConfig` and `KafkaConsumerConfig`.
 - Kafka event publishing when requests are rate-limited, consumed by a separate
   service for logging/analytics.
 - Load testing with k6, metrics endpoint, and containerized deployment.
+## Deployment
 
+The entire system (app, Redis, Kafka, Zookeeper) runs via a single command:
+
+    docker compose up -d --build
+
+This builds the app using a multi-stage Dockerfile and starts all services on a shared
+Docker network. Note: when containerized, services communicate using Docker's internal
+service names (e.g., `kafka:9092`, `redis:6379`) rather than `localhost` — hardcoding
+`localhost` is a common mistake when moving from local development to a containerized
+environment, which I hit and fixed during this build.
+
+## Metrics
+
+A basic `/api/metrics` endpoint tracks total allowed vs. blocked requests.
 ## Tech Stack
 
 Java 21+, Spring Boot, Maven, JUnit 5
