@@ -12,6 +12,9 @@ public class RateLimiterService {
     @Autowired
     private StringRedisTemplate redisTemplate;
 
+    @Autowired
+    private RateLimitEventPublisher eventPublisher;
+
     private final Map<String, RateLimiterStrategy> userLimiters = new ConcurrentHashMap<>();
 
     private static final int MAX_TOKENS = 5;
@@ -27,7 +30,13 @@ public class RateLimiterService {
 
     public boolean isAllowed(String userId) {
         RateLimiterStrategy limiter = userLimiters.computeIfAbsent(userId, id -> createLimiter(userId));
-        return limiter.allowRequest();
+        boolean allowed = limiter.allowRequest();
+
+        if (!allowed) {
+            eventPublisher.publishRateLimitExceeded(userId);
+        }
+
+        return allowed;
     }
 
     private RateLimiterStrategy createLimiter(String userId) {

@@ -35,6 +35,16 @@ centralized in Redis rather than held per-instance in memory.
   trades precision for memory efficiency and natural burst support; Sliding Window
   trades memory for stricter, more precise enforcement.
 
+## Kafka Integration
+
+Whenever a request is rate-limited, an event is published to the `rate-limit-exceeded`
+Kafka topic. A separate consumer processes these events independently, tracking blocked
+attempts per user — demonstrating decoupling between request handling and event processing.
+
+Note: this Spring Boot version's Kafka auto-configuration did not activate correctly
+(diagnosed via Spring's condition evaluation report), so producer and consumer beans
+are defined explicitly in `KafkaProducerConfig` and `KafkaConsumerConfig`.
+
 ## Planned Next
 
 - Redis-backed distributed state, so rate limits are enforced correctly across
