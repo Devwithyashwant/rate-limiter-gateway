@@ -71,3 +71,33 @@ A basic `/api/metrics` endpoint tracks total allowed vs. blocked requests.
 ## Tech Stack
 
 Java 21+, Spring Boot, Maven, JUnit 5
+
+## Load Testing & Bottleneck Analysis
+
+Tested with k6 across three scenarios of increasing concurrency:
+
+| Peak VUs | Throughput | p95 Latency | Correctness |
+|----------|-----------|-------------|-------------|
+| 50       | ~470 req/s   | 11.7ms   | 100% |
+| 500      | ~1,724 req/s | 21.6ms   | 100% |
+| 2000     | ~4,703 req/s | 231.6ms  | 99.84% |
+
+**Findings:**
+- The system remained functionally correct even under extreme load (2000 concurrent
+  users) — zero 500 errors, zero incorrect rate-limit decisions, across nearly 1
+  million total checks.
+- Latency degrades gracefully rather than failing outright: p95 rose from ~12ms to
+  ~232ms as load scaled 40x, with 99% of requests still completing under 500ms.
+- `docker stats` during peak load showed the application container (Spring Boot/Tomcat)
+  as the primary bottleneck at 600%+ CPU, while Redis stayed under 15% CPU — meaning
+  the data layer has significant headroom and the app's request-handling layer is the
+  limiting factor, not the distributed state store.
+
+**What I'd do to address this at scale:**
+- Horizontally scale the app behind a load balancer — this is exactly what the
+  Redis-backed design enables, since multiple instances already share correct rate-limit
+  state (verified earlier in this project)
+- Profile and tune the request-handling path (JSON serialization, Tomcat thread pool
+  sizing) since that's the confirmed bottleneck, not the data layer
+- Consider a reactive stack (Spring WebFlux) if CPU-bound request dispatch remains
+  a hard ceiling after tuning
