@@ -15,6 +15,9 @@ public class RateLimiterService {
     @Autowired
     private RateLimitEventPublisher eventPublisher;
 
+    @Autowired
+    private MetricsService metricsService;
+
     private final Map<String, RateLimiterStrategy> userLimiters = new ConcurrentHashMap<>();
 
     private static final int MAX_TOKENS = 5;
@@ -34,6 +37,9 @@ public class RateLimiterService {
 
         if (!allowed) {
             eventPublisher.publishRateLimitExceeded(userId);
+            metricsService.recordBlocked();
+        } else {
+            metricsService.recordAllowed();
         }
 
         return allowed;

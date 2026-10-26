@@ -37,6 +37,16 @@ public class GatewayController {
             String value = redisTemplate.opsForValue().get("testKey");
             return "redis says: " + value;
         }
+
+
+       @Autowired
+    private MetricsService metricsService;
+    @GetMapping("/api/metrics")
+    public String getMetrics(){
+        return "Allowed: " + metricsService.getAllowedCount() + ", Blocked: " + metricsService.getBlockedCount();
+    }
+
+
 }
 
 
